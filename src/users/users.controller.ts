@@ -1,37 +1,45 @@
-import { Controller, Body, Post } from '@nestjs/common';
+import { Controller, Body, Post, Put, Param } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { User } from './user.entity';
+import { User as UserEntity } from './user.entity';
 import { Repository } from 'typeorm';
 import { IsNotEmpty } from 'class-validator';
 
-class UserCreateDTO {
-  @IsNotEmpty()
-  name!: string;
+namespace Inputs {
+  class User {
+    @IsNotEmpty()
+    name!: string;
+  }
+
+  export class UserCreate extends User {}
+  export class UserUpdate extends User {}
 }
 
-class UserShowDTO {
-  id!: number;
-  name!: string;
-  createdAt!: Date;
-  updatedAt!: Date;
+namespace Serializers {
+  type User = Pick<UserEntity, 'id' | 'name' | 'createdAt' | 'updatedAt'>;
+
+  export type UserShow = User;
 }
 
 @Controller('users')
 export class UsersController {
   constructor(
-    @InjectRepository(User) private usersRepository: Repository<User>,
+    @InjectRepository(UserEntity)
+    private usersRepository: Repository<UserEntity>,
   ) {}
 
   @Post()
-  async create(@Body() input: UserCreateDTO): Promise<UserShowDTO> {
-    const user: Partial<User> = {
-      name: input.name,
-    };
+  create(@Body() input: Inputs.UserCreate): Promise<Serializers.UserShow> {
+    const user = this.usersRepository.create({ name: input.name });
+    return this.usersRepository.save(user);
+  }
 
-    // tried `create` but need await-able version?
-    await this.usersRepository.save(user);
-
-    const { id, name, createdAt, updatedAt } = user;
-    return { id, name, createdAt, updatedAt };
+  @Put(':id')
+  async update(
+    @Param('id') id: string,
+    @Body() input: Inputs.UserUpdate,
+  ): Promise<Serializers.UserShow> {
+    let user = await this.usersRepository.findOneOrFail(id);
+    user.name = input.name;
+    return this.usersRepository.save(user);
   }
 }

@@ -33,7 +33,7 @@ describe('users', () => {
   });
 
   describe('POST /users', () => {
-    it('missing name', async () => {
+    it('responds with a 400 status and error message when the request fails', async () => {
       await request(app.getHttpServer())
         .post('/users')
         .set('Accept', 'application/json')
@@ -50,7 +50,7 @@ describe('users', () => {
         });
     });
 
-    it('creates', async () => {
+    it('creates a new user when given a valid payload', async () => {
       await request(app.getHttpServer())
         .post('/users')
         .set('Accept', 'application/json')
@@ -70,6 +70,48 @@ describe('users', () => {
             updatedAt: created.updatedAt.toISOString(),
           });
         });
+    });
+  });
+
+  describe('PUT /users/:id', () => {
+    it('returns a 404 when the user does not exist', async () => {
+      await request(app.getHttpServer())
+        .put('/users/1')
+        .send({ name: 'Patrick' })
+        .set('Accept', 'application/json')
+        .set('Content-Type', 'application/json')
+        .expect(HttpStatus.NOT_FOUND)
+        .then(response => {
+          expect(response.body).toEqual({
+            statusCode: HttpStatus.NOT_FOUND,
+            message: `Could not find any entity of type "User" matching: "1"`,
+          });
+        });
+    });
+
+    it('updates the existing record', async () => {
+      const user = repository.create({ name: 'Patrick' });
+      await repository.save(user);
+
+      expect(user.name).toEqual('Patrick');
+
+      await request(app.getHttpServer())
+        .put(`/users/${user.id}`)
+        .set('Accept', 'application/json')
+        .set('Content-Type', 'application/json')
+        .send({ name: 'Updated' })
+        .expect(HttpStatus.OK)
+        .then(response => {
+          expect(response.body).toEqual({
+            id: user.id,
+            name: 'Updated',
+            createdAt: user.createdAt.toISOString(),
+            updatedAt: user.updatedAt.toISOString(),
+          });
+        });
+
+      const updated = await repository.findOneOrFail(user.id);
+      expect(updated.name).toEqual('Updated');
     });
   });
 });
