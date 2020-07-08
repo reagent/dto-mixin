@@ -1,30 +1,17 @@
 import { Controller, Body, Post, Put, Param } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { User as UserEntity } from './user.entity';
+
 import { Repository } from 'typeorm';
-import { IsNotEmpty } from 'class-validator';
 
-namespace Inputs {
-  class User {
-    @IsNotEmpty()
-    name!: string;
-  }
-
-  export class UserCreate extends User {}
-  export class UserUpdate extends User {}
-}
-
-namespace Serializers {
-  type User = Pick<UserEntity, 'id' | 'name' | 'createdAt' | 'updatedAt'>;
-
-  export type UserShow = User;
-}
+import { User } from './user.entity';
+import * as Inputs from './user.inputs';
+import * as Serializers from './user.serializers';
 
 @Controller('users')
 export class UsersController {
   constructor(
-    @InjectRepository(UserEntity)
-    private usersRepository: Repository<UserEntity>,
+    @InjectRepository(User)
+    private usersRepository: Repository<User>,
   ) {}
 
   @Post()
