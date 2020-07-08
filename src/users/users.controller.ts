@@ -25,8 +25,9 @@ export class UsersController {
     @Param('id') id: string,
     @Body() input: Inputs.UserUpdate,
   ): Promise<Serializers.UserShow> {
-    let user = await this.usersRepository.findOneOrFail(id);
-    user.name = input.name;
-    return this.usersRepository.save(user);
+    const user = await this.usersRepository.findOneOrFail(id);
+    const merged = this.usersRepository.merge(user, input);
+
+    return this.usersRepository.save(merged);
   }
 }
