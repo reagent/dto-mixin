@@ -5,19 +5,12 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 
-import { Response } from 'express';
 import { EntityNotFoundError } from 'typeorm/error/EntityNotFoundError';
+import { FilterHandler } from './filter-handler';
 
 @Catch(EntityNotFoundError)
 export class ResourceNotFoundFilter implements ExceptionFilter {
   catch(exception: EntityNotFoundError, host: ArgumentsHost) {
-    const ctx = host.switchToHttp();
-    const response = ctx.getResponse<Response>();
-    const status = HttpStatus.NOT_FOUND;
-
-    response.status(status).json({
-      statusCode: status,
-      message: exception.message,
-    });
+    return new FilterHandler(exception, host).respond(HttpStatus.NOT_FOUND);
   }
 }
