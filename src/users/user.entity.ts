@@ -4,7 +4,11 @@ import {
   Column,
   UpdateDateColumn,
   CreateDateColumn,
+  OneToMany,
+  JoinTable,
 } from 'typeorm';
+
+import { Email } from '../emails/email.entity';
 
 @Entity('users')
 export class User {
@@ -19,4 +23,11 @@ export class User {
 
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
+
+  @OneToMany(
+    type => Email,
+    email => email.user,
+    { cascade: true, lazy: true },
+  )
+  emails: Email[];
 }

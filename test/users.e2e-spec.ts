@@ -1,9 +1,12 @@
 import * as request from 'supertest';
 import { HttpStatus, INestApplication } from '@nestjs/common';
+import { Connection, Repository } from 'typeorm';
+
+import { truncateAll } from './util/database';
+
 import { initialize } from '../src/initialize';
-import { Connection } from 'typeorm';
-import { Repository } from 'typeorm';
 import { User } from '../src/users/user.entity';
+import { UserService } from '../src/users/user.service';
 
 describe('users', () => {
   let app: INestApplication;
@@ -25,15 +28,11 @@ describe('users', () => {
   });
 
   afterEach(async () => {
-    for (const entity of connection.entityMetadatas) {
-      const repository = await connection.getRepository(entity.name);
-      // SQLite uses `DELETE FROM` instead of `TRUNCATE ... CASCADE;`
-      await repository.query(`DELETE FROM ${entity.tableName}`);
-    }
+    await truncateAll(connection);
   });
 
   describe('POST /users', () => {
-    it('responds with a 400 status and error message when the request fails', async () => {
+    it.only('responds with a 400 status and error message when the request fails', async () => {
       await request(app.getHttpServer())
         .post('/users')
         .set('Accept', 'application/json')
@@ -50,7 +49,7 @@ describe('users', () => {
         });
     });
 
-    it('creates a new user when given a valid payload', async () => {
+    it.only('creates a new user when given a valid payload', async () => {
       await request(app.getHttpServer())
         .post('/users')
         .set('Accept', 'application/json')
@@ -63,11 +62,60 @@ describe('users', () => {
 
           expect(created).toBeInstanceOf(User);
 
+          // Want to be explicit about asserting this response body so that
+          // other entity / DTO properties don't come through
           expect(response.body).toEqual({
             id: created.id,
             name: 'Patrick',
+            emails: [],
             createdAt: created.createdAt.toISOString(),
             updatedAt: created.updatedAt.toISOString(),
+          });
+        });
+    });
+
+    it.only('allows emails', async () => {
+      await request(app.getHttpServer())
+        .post('/users')
+        .set('Accept', 'application/json')
+        .set('Content-Type', 'application/json')
+        .send({
+          name: 'Patrick',
+          emails: ['user@host.example'],
+        })
+        .expect(HttpStatus.CREATED)
+        .then(async response => {
+          const created = await repository.findOneOrFail(response.body.id);
+          expect(created).toBeInstanceOf(User);
+
+          expect(response.body.emails).toEqual(
+            expect.arrayContaining([
+              expect.objectContaining({ email: 'user@host.example' }),
+            ]),
+          );
+        });
+    });
+
+    it.only('do dupe email', async () => {
+      const address = 'user@host.example';
+
+      const service = app.get(UserService);
+      await service.create('Existing', [address]);
+
+      const initialCount = await repository.count();
+
+      await request(app.getHttpServer())
+        .post('/users')
+        .set('Accept', 'application/json')
+        .set('Content-Type', 'application/json')
+        .send({ name: 'Patrick', emails: [address] })
+        .expect(HttpStatus.UNPROCESSABLE_ENTITY)
+        .then(async response => {
+          expect(await repository.count()).toEqual(initialCount);
+
+          expect(response.body).toEqual({
+            statusCode: HttpStatus.UNPROCESSABLE_ENTITY,
+            message: 'Provided email addresses must be unique',
           });
         });
     });
