@@ -28,7 +28,7 @@ export class Email {
   updatedAt!: Date;
 
   @ManyToOne(
-    type => User,
+    type => User, // eslint-disable-line @typescript-eslint/no-unused-vars
     user => user.emails,
   )
   @JoinColumn({ name: 'user_id' })

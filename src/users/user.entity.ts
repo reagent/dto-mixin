@@ -5,7 +5,6 @@ import {
   UpdateDateColumn,
   CreateDateColumn,
   OneToMany,
-  JoinTable,
 } from 'typeorm';
 
 import { Email } from '../emails/email.entity';
@@ -25,7 +24,7 @@ export class User {
   updatedAt: Date;
 
   @OneToMany(
-    type => Email,
+    type => Email, // eslint-disable-line @typescript-eslint/no-unused-vars
     email => email.user,
     { cascade: true, lazy: true },
   )

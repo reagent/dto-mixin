@@ -60,7 +60,7 @@ describe('UserService', () => {
     it('throws an error when the email address already exists', async () => {
       const address = 'user@host.example';
 
-      const existing = await service.create('Existing', [address]);
+      await service.create('Existing', [address]);
 
       await expect(() => service.create('Patrick', [address])).rejects.toThrow(
         DuplicateEmailsError,
