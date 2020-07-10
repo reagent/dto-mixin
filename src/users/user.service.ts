@@ -21,6 +21,8 @@ class UserService {
   // context should be encouraged, but could result in invalid data from the
   // application's perspective.
   async create(name: string, emailAddresses: string[]): Promise<User> {
+    // Nick -- leaking entity out of this method, should have an interface
+    // only ever return the serialized version -- we would not have entities
     const uniqueAddresses = Array.from(new Set(emailAddresses));
     let created: User;
 

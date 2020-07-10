@@ -1,10 +1,19 @@
-import { IsNotEmpty } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsArray,
+  IsEmail,
+  IsOptional,
+  MinLength,
+} from 'class-validator';
 
 class User {
-  @IsNotEmpty()
+  @IsNotEmpty() // maybe not use
   name!: string;
 
-  emails?: string[];
+  @IsArray()
+  @IsEmail({}, { each: true })
+  @IsOptional()
+  emails: string[] = [];
 }
 
 class UserCreate extends User {}

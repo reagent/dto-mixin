@@ -1,4 +1,14 @@
-import { Controller, Body, Post, Put, Param, UseFilters } from '@nestjs/common';
+import {
+  Controller,
+  Body,
+  Post,
+  Put,
+  Param,
+  UseFilters,
+  Get,
+  UseInterceptors,
+  ClassSerializerInterceptor,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
@@ -7,8 +17,16 @@ import { DuplicateEmailFilter } from '../util/duplicate-email.filter';
 import { User } from './user.entity';
 import { UserService } from './user.service';
 
+import { User as UserEntity } from './user.entity';
+
 import * as Inputs from './user.inputs';
 import * as Serializers from './user.serializers';
+
+class ExcludingSerializer extends ClassSerializerInterceptor {
+  constructor(reflector: any) {
+    super(reflector, { strategy: 'excludeAll' });
+  }
+}
 
 @Controller('users')
 export class UsersController {
@@ -20,23 +38,36 @@ export class UsersController {
     private service: UserService,
   ) {}
 
-  @Post()
-  @UseFilters(new DuplicateEmailFilter())
-  async create(@Body() input: Inputs.UserCreate): Promise<Serializers.User> {
-    const created = await this.service.create(input.name, input.emails || []);
-    return new Serializers.UserShow(created).json();
+  @Get(':id')
+  @UseInterceptors(ExcludingSerializer)
+  show(): Serializers.User {
+    const user = new UserEntity();
+    user.id = 1;
+    user.name = 'Patrick';
+    // user.createdAt = new Date();
+    user.emails = [];
+
+    return new Serializers.User(user);
   }
 
-  @Put(':id')
-  async update(
-    @Param('id') id: string,
-    @Body() input: Inputs.UserUpdate,
-  ): Promise<Serializers.User> {
-    const user = await this.usersRepository.findOneOrFail(id);
+  // @Post()
+  // @UseFilters(new DuplicateEmailFilter())
+  // async create(@Body() input: Inputs.UserCreate): Promise<Serializers.User> {
+  //   // nick -- service should have same interface / never expose repo directly
+  //   const created = await this.service.create(input.name, input.emails || []);
+  //   return new Serializers.UserShow(created).json();
+  // }
 
-    const merged = this.usersRepository.merge(user, { name: input.name });
-    await this.usersRepository.save(merged);
+  // @Put(':id')
+  // async update(
+  //   @Param('id') id: string,
+  //   @Body() input: Inputs.UserUpdate,
+  // ): Promise<Serializers.User> {
+  //   const user = await this.usersRepository.findOneOrFail(id);
 
-    return new Serializers.UserShow(merged).json();
-  }
+  //   const merged = this.usersRepository.merge(user, { name: input.name });
+  //   await this.usersRepository.save(merged);
+
+  //   return new Serializers.UserShow(merged).json();
+  // }
 }
