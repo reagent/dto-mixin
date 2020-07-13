@@ -1,10 +1,4 @@
-import {
-  IsNotEmpty,
-  IsArray,
-  IsEmail,
-  IsOptional,
-  MinLength,
-} from 'class-validator';
+import { IsNotEmpty, IsArray, IsEmail, IsOptional } from 'class-validator';
 
 class User {
   @IsNotEmpty() // maybe not use
