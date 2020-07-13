@@ -6,8 +6,6 @@ import {
   Param,
   UseFilters,
   Get,
-  UseInterceptors,
-  ClassSerializerInterceptor,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -22,12 +20,6 @@ import { User as UserEntity } from './user.entity';
 import * as Inputs from './user.inputs';
 import * as Serializers from './user.serializers';
 
-class ExcludingSerializer extends ClassSerializerInterceptor {
-  constructor(reflector: any) {
-    super(reflector, { strategy: 'excludeAll' });
-  }
-}
-
 @Controller('users')
 export class UsersController {
   constructor(
@@ -39,13 +31,11 @@ export class UsersController {
   ) {}
 
   @Get(':id')
-  @UseInterceptors(ExcludingSerializer)
   show(): Serializers.User {
     const user = new UserEntity();
     user.id = 1;
     user.name = 'Patrick';
-    // user.createdAt = new Date();
-    user.emails = [];
+    user.createdAt = new Date();
 
     return new Serializers.User(user);
   }

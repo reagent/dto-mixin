@@ -1,8 +1,9 @@
-import { NestFactory } from '@nestjs/core';
+import { NestFactory, Reflector } from '@nestjs/core';
 import { ValidationPipe, INestApplication, Logger } from '@nestjs/common';
 
 import { AppModule } from './app.module';
 import { ResourceNotFoundFilter } from './util/resource-not-found.filter';
+import { ExcludingSerializer } from './util/excluding.serializer';
 
 export async function initialize(): Promise<INestApplication> {
   const app = await NestFactory.create(AppModule, {
@@ -14,6 +15,7 @@ export async function initialize(): Promise<INestApplication> {
   );
 
   app.useGlobalFilters(new ResourceNotFoundFilter());
+  app.useGlobalInterceptors(new ExcludingSerializer());
 
   return app;
 }

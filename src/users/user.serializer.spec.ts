@@ -1,38 +1,39 @@
-import { serialize } from 'class-transformer';
-
 import { User } from './user.serializers';
 import { User as UserEntity } from './user.entity';
 
 describe('User Serializer', () => {
   let entity: UserEntity;
-  let subject: User;
 
   beforeEach(() => {
     entity = new UserEntity();
-    subject = new User(entity);
   });
 
-  it('default', () => {
-    expect(JSON.parse(serialize(subject))).toEqual({});
+  it('serializes the default values', () => {
+    const subject = new User(entity);
+
+    expect(subject).toSerializeAs({
+      emails: [],
+      createdAt: null,
+      updatedAt: null,
+    });
   });
 
-  // it('do', () => {
-  //   // serialize({}, { excludeExtraneousValues: false });
-  //   const entity = new UserEntity();
-  //   entity.id = 1;
-  //   // entity.name = 'omg';
-  //   const subject = new User(entity);
+  it('contains additional fields from the underlying entity', () => {
+    const now = new Date();
 
-  //   console.log(
-  //     serialize(subject, {
-  //       strategy: 'excludeAll',
-  //       excludeExtraneousValues: false,
-  //     }),
-  //   );
+    entity.id = 1;
+    entity.name = 'Name';
+    entity.createdAt = now;
+    entity.updatedAt = now;
 
-  //   // const user = new UserEntity();
-  //   // const subject = new UserShow(user);
+    const subject = new User(entity);
 
-  //   // expect(subject.toJSON()).toEqual({ key: 'value' });
-  // });
+    expect(subject).toSerializeAs({
+      id: 1,
+      name: 'Name',
+      createdAt: now.toISOString(),
+      updatedAt: now.toISOString(),
+      emails: [],
+    });
+  });
 });
