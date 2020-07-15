@@ -8,6 +8,7 @@ import {
   Get,
   UseInterceptors,
   HttpStatus,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -34,7 +35,7 @@ export class UsersController {
   ) {}
 
   @Get(':id')
-  show(@Param('id') id: string): Promise<Serializers.User> {
+  show(@Param('id', ParseIntPipe) id: number): Promise<Serializers.User> {
     return this.service.show(id);
   }
 
@@ -49,16 +50,11 @@ export class UsersController {
     return this.service.create(input);
   }
 
-  // @Put(':id')
-  // async update(
-  //   @Param('id') id: string,
-  //   @Body() input: Inputs.UserUpdate,
-  // ): Promise<Serializers.User> {
-  //   const user = await this.usersRepository.findOneOrFail(id);
-
-  //   const merged = this.usersRepository.merge(user, { name: input.name });
-  //   await this.usersRepository.save(merged);
-
-  //   return new Serializers.UserShow(merged).json();
-  // }
+  @Put(':id')
+  async update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() input: Inputs.Update,
+  ): Promise<Serializers.User> {
+    return this.service.update(id, input);
+  }
 }

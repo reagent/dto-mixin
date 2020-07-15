@@ -2,16 +2,11 @@ import { NestFactory } from '@nestjs/core';
 import { Connection, FindOneOptions } from 'typeorm';
 import { truncateAll } from '../../test/util/database';
 
-import * as Inputs from './user.inputs';
-
 import { AppModule } from '../app.module';
 import { UserService, DuplicateEmailsError } from './user.service';
 import { User } from './user.entity';
 import { Email } from '../emails/email.entity';
-import * as Serializers from './user.serializers';
-import { ObjectType } from 'typeorm';
 import { EntityNotFoundError } from 'typeorm/error/EntityNotFoundError';
-import { create } from 'domain';
 
 // function last<T>(connection: Connection): Promise<T> {
 //   return connection.manager.findOneOrFail<T>(T, undefined, {order: {createdAt: "DESC"}});
@@ -54,6 +49,27 @@ describe('UserService', () => {
 
   afterEach(async () => {
     await truncateAll(connection);
+  });
+
+  describe('show()', () => {
+    it('throws an error when the user cannot be found', async () => {
+      await expect(service.show(1)).rejects.toThrowError(EntityNotFoundError);
+    });
+
+    it('returns the serialized user', async () => {
+      const existing = await createUser(connection, {
+        name: 'Existing',
+        emails: ['existing@host.example'],
+      });
+
+      const found = await service.show(existing.id);
+
+      expect(found).toMatchObject({
+        id: existing.id,
+        name: 'Existing',
+        emails: [{ email: 'existing@host.example' }],
+      });
+    });
   });
 
   describe('create()', () => {

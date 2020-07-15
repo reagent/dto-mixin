@@ -6,9 +6,6 @@ import { validate, ValidationError } from 'class-validator';
 
 import * as Inputs from './user.inputs';
 import * as Serializers from './user.serializers';
-import { Serializer } from 'v8';
-import { merge } from 'rxjs';
-import { toSerializeAs } from 'test/matchers/serialize-as.matcher';
 
 class DuplicateEmailsError extends Error {
   constructor() {
@@ -22,8 +19,15 @@ class UserService {
     @InjectRepository(Email) private emailRepository: Repository<Email>,
   ) {}
 
-  show(id: string): Promise<Serializers.User> {
-    return this.userRepository.findOneOrFail(id, { relations: ['emails'] });
+  async show(id: number): Promise<Serializers.User> {
+    const user = await this.userRepository.findOneOrFail(id, {
+      relations: ['emails'],
+    });
+
+    // I'm not convinced that we should be returning serialized versions from
+    // here and can return the actual entities.  It is up to the global
+    // interceptor to present the serialized version to the consumer.
+    return new Serializers.User(user);
   }
 
   // Some concerns here -- since there is no validation that gets triggered at
@@ -34,7 +38,8 @@ class UserService {
   async create(input: Inputs.Create): Promise<Serializers.User> {
     // TODO: do we validate here and return any errors to the caller? This would
     //       result in duplicate validations since they happen in the global
-    //       validation pipe.
+    //       validation pipe, but would provide consistent validations in other
+    //       contexts.
 
     // const errors = await validate(input);
     // if (errors.length > 0) {

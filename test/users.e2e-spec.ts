@@ -6,6 +6,7 @@ import { truncateAll } from './util/database';
 
 import { initialize } from '../src/initialize';
 import { User } from '../src/users/user.entity';
+import { Email } from '../src/emails/email.entity';
 import { UserService } from '../src/users/user.service';
 
 describe('users', () => {
@@ -29,6 +30,48 @@ describe('users', () => {
 
   afterEach(async () => {
     await truncateAll(connection);
+  });
+
+  describe('GET /users/:id', () => {
+    it('responds with a 404 when the user does not exist', async () => {
+      await request(app.getHttpServer())
+        .get('/users/1')
+        .set('Accept', 'application/json')
+        .set('Content-Type', 'application/json')
+        .expect(HttpStatus.NOT_FOUND)
+        .then(response =>
+          expect(response.body).toEqual({
+            statusCode: HttpStatus.NOT_FOUND,
+            message: `Could not find any entity of type "User" matching: 1`,
+          }),
+        );
+    });
+
+    it('returns the matching user entity and associated emails', async () => {
+      const user = repository.create({ name: 'Existing' });
+      await repository.save(user);
+
+      const email = connection.manager.create<Email>(Email, {
+        email: 'user@host.example',
+        userId: user.id,
+      });
+      await connection.manager.save(email);
+
+      await request(app.getHttpServer())
+        .get(`/users/${user.id}`)
+        .set('Accept', 'application/json')
+        .set('Content-Type', 'application/json')
+        .expect(HttpStatus.OK)
+        .then(response =>
+          expect(response.body).toStrictEqual({
+            id: user.id,
+            name: 'Existing',
+            emails: [{ id: email.id, email: email.email }],
+            createdAt: user.createdAt.toISOString(),
+            updatedAt: user.updatedAt.toISOString(),
+          }),
+        );
+    });
   });
 
   describe('POST /users', () => {
@@ -132,7 +175,7 @@ describe('users', () => {
         .then(response => {
           expect(response.body).toEqual({
             statusCode: HttpStatus.NOT_FOUND,
-            message: `Could not find any entity of type "User" matching: "1"`,
+            message: `Could not find any entity of type "User" matching: 1`,
           });
         });
     });
@@ -153,6 +196,7 @@ describe('users', () => {
           expect(response.body).toEqual({
             id: user.id,
             name: 'Updated',
+            emails: [],
             createdAt: user.createdAt.toISOString(),
             updatedAt: user.updatedAt.toISOString(),
           });
