@@ -35,6 +35,14 @@ export class UsersController {
   ) {}
 
   @Get(':id')
+  @ApiOperation({
+    summary: 'Fetch a single user and associated email addresses',
+  })
+  @ApiResponse({
+    type: Serializers.User,
+    status: HttpStatus.OK,
+    description: 'OK',
+  })
   show(@Param('id', ParseIntPipe) id: number): Promise<Serializers.User> {
     return this.service.show(id);
   }
@@ -44,13 +52,21 @@ export class UsersController {
   @ApiOperation({
     summary: 'Create a new user with optional associated email addresses',
   })
-  @ApiResponse({ status: HttpStatus.CREATED })
+  @ApiResponse({ type: Serializers.User, status: HttpStatus.CREATED })
   @ApiResponse({ status: HttpStatus.UNPROCESSABLE_ENTITY })
   create(@Body() input: Inputs.Create): Promise<Serializers.User> {
     return this.service.create(input);
   }
 
   @Put(':id')
+  @ApiOperation({
+    summary: 'Update a user and optionally replace associated email addresses',
+  })
+  @ApiResponse({
+    type: Serializers.User,
+    status: HttpStatus.OK,
+    description: 'OK',
+  })
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() input: Inputs.Update,

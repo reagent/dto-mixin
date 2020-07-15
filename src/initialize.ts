@@ -12,8 +12,12 @@ export async function initialize(): Promise<INestApplication> {
   });
 
   const options = new DocumentBuilder()
-    .setTitle('OMG')
-    .setDescription('Description')
+    .setTitle('Example DTO application')
+    .setDescription(
+      `Example application to explore the approach of splitting TypeORM entities,
+      input types (with validations), and serialized output types that are
+      transformed with a global interceptor.`,
+    )
     .build();
 
   const document = SwaggerModule.createDocument(app, options);
