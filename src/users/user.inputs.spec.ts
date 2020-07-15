@@ -1,10 +1,11 @@
-import { UserCreate } from './user.inputs';
+import { Create, Update } from './user.inputs';
+import { util } from 'prettier';
 
-describe('User Inputs', () => {
-  let subject: UserCreate;
+describe('Create', () => {
+  let subject: Create;
 
   beforeEach(() => {
-    subject = new UserCreate();
+    subject = new Create();
   });
 
   describe('name', () => {
@@ -38,6 +39,33 @@ describe('User Inputs', () => {
       subject.emails = ['user@host.example', 'bogus'];
 
       expect(subject).toHaveErrorsOn('emails');
+    });
+  });
+});
+
+describe('Update', () => {
+  let subject: Update;
+
+  beforeEach(() => {
+    subject = new Update();
+  });
+
+  describe('name', () => {
+    it('is not required', () => {
+      expect(subject).not.toHaveErrorsOn('name');
+    });
+  });
+
+  describe('emails', () => {
+    it('is not required', () => {
+      expect(subject).not.toHaveErrorsOn('emails');
+    });
+
+    it('requires the values to be emails', () => {
+      subject.emails = ['bogus'];
+      expect(subject).toHaveErrorsOn('emails', {
+        isEmail: 'each value in emails must be an email',
+      });
     });
   });
 });

@@ -26,7 +26,7 @@ export class User {
   @OneToMany(
     type => Email, // eslint-disable-line @typescript-eslint/no-unused-vars
     email => email.user,
-    { cascade: true, lazy: true },
+    { cascade: true },
   )
   emails: Email[];
 }

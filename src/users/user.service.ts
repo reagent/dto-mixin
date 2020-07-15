@@ -1,7 +1,14 @@
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, Not } from 'typeorm';
 import { User } from './user.entity';
 import { Email } from '../emails/email.entity';
+import { validate, ValidationError } from 'class-validator';
+
+import * as Inputs from './user.inputs';
+import * as Serializers from './user.serializers';
+import { Serializer } from 'v8';
+import { merge } from 'rxjs';
+import { toSerializeAs } from 'test/matchers/serialize-as.matcher';
 
 class DuplicateEmailsError extends Error {
   constructor() {
@@ -15,15 +22,26 @@ class UserService {
     @InjectRepository(Email) private emailRepository: Repository<Email>,
   ) {}
 
+  show(id: string): Promise<Serializers.User> {
+    return this.userRepository.findOneOrFail(id, { relations: ['emails'] });
+  }
+
   // Some concerns here -- since there is no validation that gets triggered at
   // the service level, we need to rely on the validations on the input / entity
   // at the controller level.  Re-using this code outside of a controller
   // context should be encouraged, but could result in invalid data from the
   // application's perspective.
-  async create(name: string, emailAddresses: string[]): Promise<User> {
-    // Nick -- leaking entity out of this method, should have an interface
-    // only ever return the serialized version -- we would not have entities
-    const uniqueAddresses = Array.from(new Set(emailAddresses));
+  async create(input: Inputs.Create): Promise<Serializers.User> {
+    // TODO: do we validate here and return any errors to the caller? This would
+    //       result in duplicate validations since they happen in the global
+    //       validation pipe.
+
+    // const errors = await validate(input);
+    // if (errors.length > 0) {
+    //   return errors;
+    // }
+
+    const uniqueAddresses = Array.from(new Set(input.emails));
     let created: User;
 
     await this.emailRepository.manager.transaction(async transaction => {
@@ -35,16 +53,77 @@ class UserService {
         throw new DuplicateEmailsError();
       }
 
-      created = this.userRepository.create({ name: name });
-      created.emails = uniqueAddresses.map(address => {
-        return this.emailRepository.create({ email: address });
-      });
+      created = this.userRepository.create({ name: input.name });
 
-      await transaction.save<User>(created, { reload: true });
+      created.emails = uniqueAddresses.map(address =>
+        this.emailRepository.create({ email: address }),
+      );
+
+      // adding `{reload: false}` here throws
+      //   QueryFailedError: SQLITE_CONSTRAINT: NOT NULL constraint failed: emails.user_id
+      //
+      await transaction.save<User>(created);
     });
 
-    return created;
+    const reloaded = await this.userRepository.findOne(created.id, {
+      relations: ['emails'],
+    });
+
+    return new Serializers.User(reloaded);
+  }
+
+  async update(id: number, input: Inputs.Update): Promise<Serializers.User> {
+    const user = await this.userRepository.findOneOrFail(id);
+    const merged = this.userRepository.merge(user, { name: input.name });
+
+    if (input.emails) {
+      const uniqueAddresses = Array.from(new Set(input.emails));
+
+      const count = await this.emailRepository.count({
+        where: { email: uniqueAddresses, userId: Not(merged.id) },
+      });
+
+      if (count > 0) {
+        throw new DuplicateEmailsError();
+      }
+
+      const emails = await this.emailRepository.find({ user: merged });
+      await this.emailRepository.remove(emails);
+
+      merged.emails = uniqueAddresses.map(address =>
+        this.emailRepository.create({ email: address }),
+      );
+    }
+
+    await this.userRepository.save(merged);
+
+    const reloaded = await this.userRepository.findOneOrFail(user.id, {
+      relations: ['emails'],
+    });
+
+    return new Serializers.User(reloaded);
   }
 }
 
 export { UserService, DuplicateEmailsError };
+
+// await this.userRepository.manager.transaction(async transaction => {
+//   const count = await transaction.count<Email>(Email, {
+//     where: { email: input.emails },
+//   });
+
+//   if (count > 0) {
+//     throw new DuplicateEmailsError();
+//   }
+
+//   if (input.emails) {
+//     const emails = await transaction.find<Email>(Email, { user: merged });
+//     await transaction.remove(emails);
+
+//     merged.emails = input.emails.map(address =>
+//       this.emailRepository.create({ email: address }),
+//     );
+//   }
+
+//   await transaction.save(merged);
+// });

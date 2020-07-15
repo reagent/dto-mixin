@@ -2,7 +2,7 @@ import { User as UserEntity } from './user.entity';
 import { Email as EmailEntity } from '../emails/email.entity';
 import { Expose, Type } from 'class-transformer';
 
-export class Email {
+class Email {
   @Expose()
   id: number;
 

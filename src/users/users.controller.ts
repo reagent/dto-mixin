@@ -6,6 +6,8 @@ import {
   Param,
   UseFilters,
   Get,
+  UseInterceptors,
+  HttpStatus,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -19,6 +21,7 @@ import { User as UserEntity } from './user.entity';
 
 import * as Inputs from './user.inputs';
 import * as Serializers from './user.serializers';
+import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 
 @Controller('users')
 export class UsersController {
@@ -31,22 +34,20 @@ export class UsersController {
   ) {}
 
   @Get(':id')
-  show(): Serializers.User {
-    const user = new UserEntity();
-    user.id = 1;
-    user.name = 'Patrick';
-    user.createdAt = new Date();
-
-    return new Serializers.User(user);
+  show(@Param('id') id: string): Promise<Serializers.User> {
+    return this.service.show(id);
   }
 
-  // @Post()
-  // @UseFilters(new DuplicateEmailFilter())
-  // async create(@Body() input: Inputs.UserCreate): Promise<Serializers.User> {
-  //   // nick -- service should have same interface / never expose repo directly
-  //   const created = await this.service.create(input.name, input.emails || []);
-  //   return new Serializers.UserShow(created).json();
-  // }
+  @Post()
+  @UseFilters(new DuplicateEmailFilter())
+  @ApiOperation({
+    summary: 'Create a new user with optional associated email addresses',
+  })
+  @ApiResponse({ status: HttpStatus.CREATED })
+  @ApiResponse({ status: HttpStatus.UNPROCESSABLE_ENTITY })
+  create(@Body() input: Inputs.Create): Promise<Serializers.User> {
+    return this.service.create(input);
+  }
 
   // @Put(':id')
   // async update(

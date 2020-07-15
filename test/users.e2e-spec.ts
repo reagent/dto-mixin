@@ -32,7 +32,7 @@ describe('users', () => {
   });
 
   describe('POST /users', () => {
-    it.only('responds with a 400 status and error message when the request fails', async () => {
+    it('responds with a 400 status and error message when the request fails', async () => {
       await request(app.getHttpServer())
         .post('/users')
         .set('Accept', 'application/json')
@@ -49,7 +49,7 @@ describe('users', () => {
         });
     });
 
-    it.only('creates a new user when given a valid payload', async () => {
+    it('creates a new user when given a valid payload', async () => {
       await request(app.getHttpServer())
         .post('/users')
         .set('Accept', 'application/json')
@@ -74,7 +74,7 @@ describe('users', () => {
         });
     });
 
-    it.only('allows emails', async () => {
+    it('creates the user and an associated email address', async () => {
       await request(app.getHttpServer())
         .post('/users')
         .set('Accept', 'application/json')
@@ -96,11 +96,11 @@ describe('users', () => {
         });
     });
 
-    it.only('do dupe email', async () => {
+    it('returns an error and does not save the user when there is a duplicate email address', async () => {
       const address = 'user@host.example';
 
       const service = app.get(UserService);
-      await service.create('Existing', [address]);
+      await service.create({ name: 'Existing', emails: [address] });
 
       const initialCount = await repository.count();
 

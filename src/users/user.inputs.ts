@@ -1,16 +1,25 @@
 import { IsNotEmpty, IsArray, IsEmail, IsOptional } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
 
 class User {
-  @IsNotEmpty() // maybe not use
-  name!: string;
+  @ApiProperty({ example: 'John' })
+  name?: string;
 
   @IsArray()
   @IsEmail({}, { each: true })
   @IsOptional()
-  emails: string[] = [];
+  @ApiProperty({
+    isArray: true,
+    example: ['user@host.example', 'another@host.example'],
+  })
+  emails?: string[];
 }
 
-class UserCreate extends User {}
-class UserUpdate extends User {}
+class Create extends User {
+  @IsNotEmpty()
+  name!: string;
+}
 
-export { UserCreate, UserUpdate };
+class Update extends User {}
+
+export { Create, Update };
