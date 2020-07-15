@@ -54,6 +54,11 @@ describe('Update', () => {
     it('is not required', () => {
       expect(subject).not.toHaveErrorsOn('name');
     });
+
+    it('must not be empty', () => {
+      subject.name = '';
+      expect(subject).toHaveErrorsOn('name');
+    });
   });
 
   describe('emails', () => {

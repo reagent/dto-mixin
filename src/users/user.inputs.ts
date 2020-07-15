@@ -20,6 +20,10 @@ class Create extends User {
   name!: string;
 }
 
-class Update extends User {}
+class Update extends User {
+  @IsNotEmpty()
+  @IsOptional()
+  name?: string;
+}
 
 export { Create, Update };
