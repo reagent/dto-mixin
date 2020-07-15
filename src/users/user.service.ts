@@ -76,26 +76,28 @@ class UserService {
     const user = await this.userRepository.findOneOrFail(id);
     const merged = this.userRepository.merge(user, { name: input.name });
 
-    if (input.emails) {
-      const uniqueAddresses = Array.from(new Set(input.emails));
+    await this.userRepository.manager.transaction(async transaction => {
+      if (input.emails) {
+        const uniqueAddresses = Array.from(new Set(input.emails));
 
-      const count = await this.emailRepository.count({
-        where: { email: uniqueAddresses, userId: Not(merged.id) },
-      });
+        const count = await transaction.count<Email>(Email, {
+          where: { email: uniqueAddresses, userId: Not(merged.id) },
+        });
 
-      if (count > 0) {
-        throw new DuplicateEmailsError();
+        if (count > 0) {
+          throw new DuplicateEmailsError();
+        }
+
+        const emails = await transaction.find<Email>(Email, { user: merged });
+        await transaction.remove(emails);
+
+        merged.emails = uniqueAddresses.map(address =>
+          this.emailRepository.create({ email: address }),
+        );
       }
 
-      const emails = await this.emailRepository.find({ user: merged });
-      await this.emailRepository.remove(emails);
-
-      merged.emails = uniqueAddresses.map(address =>
-        this.emailRepository.create({ email: address }),
-      );
-    }
-
-    await this.userRepository.save(merged);
+      await transaction.save(merged);
+    });
 
     const reloaded = await this.userRepository.findOneOrFail(user.id, {
       relations: ['emails'],
@@ -106,24 +108,3 @@ class UserService {
 }
 
 export { UserService, DuplicateEmailsError };
-
-// await this.userRepository.manager.transaction(async transaction => {
-//   const count = await transaction.count<Email>(Email, {
-//     where: { email: input.emails },
-//   });
-
-//   if (count > 0) {
-//     throw new DuplicateEmailsError();
-//   }
-
-//   if (input.emails) {
-//     const emails = await transaction.find<Email>(Email, { user: merged });
-//     await transaction.remove(emails);
-
-//     merged.emails = input.emails.map(address =>
-//       this.emailRepository.create({ email: address }),
-//     );
-//   }
-
-//   await transaction.save(merged);
-// });
