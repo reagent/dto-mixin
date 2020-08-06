@@ -31,7 +31,6 @@ export class UsersController {
   })
   async show(@Param('id', ParseIntPipe) id: number): Promise<Serializers.User> {
     const user = await this.service.show(id);
-
     return new Serializers.User(user);
   }
 
