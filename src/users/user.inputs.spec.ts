@@ -1,5 +1,4 @@
 import { Create, Update } from './user.inputs';
-import { util } from 'prettier';
 
 describe('Create', () => {
   let subject: Create;

@@ -8,10 +8,6 @@ import { User } from './user.entity';
 import { Email } from '../emails/email.entity';
 import { EntityNotFoundError } from 'typeorm/error/EntityNotFoundError';
 
-// function last<T>(connection: Connection): Promise<T> {
-//   return connection.manager.findOneOrFail<T>(T, undefined, {order: {createdAt: "DESC"}});
-// }
-
 function lastUser(
   connection: Connection,
   options: FindOneOptions<User> = {},
@@ -73,6 +69,10 @@ describe('UserService', () => {
   });
 
   describe('create()', () => {
+    it('throws an error when validations fail', async () => {
+      await expect(service.create({ name: '' })).rejects.toThrow();
+    });
+
     it('creates a new user without any emails', async () => {
       const created = await service.create({ name: 'Patrick' });
 
@@ -133,6 +133,12 @@ describe('UserService', () => {
 
       beforeEach(async () => {
         existing = await createUser(connection, { name: 'Existing' });
+      });
+
+      it('throws an error when validations fail', async () => {
+        await expect(
+          service.update(existing.id, { name: '' }),
+        ).rejects.toThrow();
       });
 
       it('updates the name of the user', async () => {
@@ -248,7 +254,6 @@ describe('UserService', () => {
       const otherAddress = 'other@host.example';
 
       let existing: User;
-      let other: User;
 
       beforeEach(async () => {
         existing = await createUser(connection, {
@@ -256,7 +261,7 @@ describe('UserService', () => {
           emails: [existingAddress],
         });
 
-        other = await createUser(connection, {
+        await createUser(connection, {
           name: 'Other',
           emails: [otherAddress],
         });

@@ -44,6 +44,7 @@ export function toHaveErrorsOn(
     }
   }
 
+  // toHaveErrorsOn('name')
   if (matchingError && !errors) {
     return { pass: true, message: () => `Found errors on '${property}'` };
   }

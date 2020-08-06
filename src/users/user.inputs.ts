@@ -1,5 +1,5 @@
 import { IsNotEmpty, IsArray, IsEmail, IsOptional } from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiPropertyOptional, ApiProperty } from '@nestjs/swagger';
 
 class User {
   @ApiProperty({ example: 'John' })
@@ -8,8 +8,9 @@ class User {
   @IsArray()
   @IsEmail({}, { each: true })
   @IsOptional()
-  @ApiProperty({
-    isArray: true,
+  @ApiPropertyOptional({
+    // isArray: true,
+    type: 'string',
     example: ['user@host.example', 'another@host.example'],
   })
   emails?: string[];
@@ -23,6 +24,7 @@ class Create extends User {
 class Update extends User {
   @IsNotEmpty()
   @IsOptional()
+  @ApiPropertyOptional()
   name?: string;
 }
 

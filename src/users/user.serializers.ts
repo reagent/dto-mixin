@@ -1,4 +1,4 @@
-import { User as UserEntity } from './user.entity';
+import { UserWithEmails } from './user.entity';
 import { Email as EmailEntity } from '../emails/email.entity';
 import { Expose, Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
@@ -42,7 +42,7 @@ export class User {
   @Type(() => Email)
   emails: Email[] = [];
 
-  constructor(entity: UserEntity) {
+  constructor(entity: UserWithEmails) {
     // properties that are not set on the entity will not appear in the
     // serialized object
     Object.assign(this, entity);

@@ -10,7 +10,7 @@ import {
 import { Email } from '../emails/email.entity';
 
 @Entity('users')
-export class User {
+class User {
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -28,5 +28,11 @@ export class User {
     email => email.user,
     { cascade: true },
   )
+  emails?: Email[];
+}
+
+class UserWithEmails extends User {
   emails: Email[];
 }
+
+export { User, UserWithEmails };

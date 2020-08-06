@@ -1,11 +1,12 @@
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Not } from 'typeorm';
-import { User } from './user.entity';
+import { validate } from 'class-validator';
+import { plainToClass } from 'class-transformer';
+
+import { User, UserWithEmails } from './user.entity';
 import { Email } from '../emails/email.entity';
-import { validate, ValidationError } from 'class-validator';
 
 import * as Inputs from './user.inputs';
-import * as Serializers from './user.serializers';
 
 class DuplicateEmailsError extends Error {
   constructor() {
@@ -19,32 +20,24 @@ class UserService {
     @InjectRepository(Email) private emailRepository: Repository<Email>,
   ) {}
 
-  async show(id: number): Promise<Serializers.User> {
-    const user = await this.userRepository.findOneOrFail(id, {
+  async show(id: number): Promise<UserWithEmails> {
+    return this.userRepository.findOneOrFail(id, {
       relations: ['emails'],
-    });
-
-    // I'm not convinced that we should be returning serialized versions from
-    // here and can return the actual entities.  It is up to the global
-    // interceptor to present the serialized version to the consumer.
-    return new Serializers.User(user);
+    }) as Promise<UserWithEmails>;
   }
 
-  // Some concerns here -- since there is no validation that gets triggered at
-  // the service level, we need to rely on the validations on the input / entity
-  // at the controller level.  Re-using this code outside of a controller
-  // context should be encouraged, but could result in invalid data from the
-  // application's perspective.
-  async create(input: Inputs.Create): Promise<Serializers.User> {
-    // TODO: do we validate here and return any errors to the caller? This would
-    //       result in duplicate validations since they happen in the global
-    //       validation pipe, but would provide consistent validations in other
-    //       contexts.
+  async create(input: Inputs.Create): Promise<UserWithEmails> {
+    // Typically, validations are handled at the controller level -- this works
+    // great in most cases, but prevents us from confidently using service
+    // methods elsewhere in the application.  I've added validations here to
+    // ensure that the code interacting with the database won't introduce data
+    // integrity issues.
+    //
+    const errors = await validate(plainToClass(Inputs.Create, input));
 
-    // const errors = await validate(input);
-    // if (errors.length > 0) {
-    //   return errors;
-    // }
+    if (errors.length > 0) {
+      throw new Error(errors.toString());
+    }
 
     const uniqueAddresses = Array.from(new Set(input.emails));
     let created: User;
@@ -70,14 +63,18 @@ class UserService {
       await transaction.save<User>(created);
     });
 
-    const reloaded = await this.userRepository.findOne(created.id, {
+    return this.userRepository.findOne(created.id, {
       relations: ['emails'],
-    });
-
-    return new Serializers.User(reloaded);
+    }) as Promise<UserWithEmails>;
   }
 
-  async update(id: number, input: Inputs.Update): Promise<Serializers.User> {
+  async update(id: number, input: Inputs.Update): Promise<UserWithEmails> {
+    const errors = await validate(plainToClass(Inputs.Update, input));
+
+    if (errors.length > 0) {
+      throw new Error(errors.toString());
+    }
+
     const user = await this.userRepository.findOneOrFail(id);
     const merged = this.userRepository.merge(user, { name: input.name });
 
@@ -104,11 +101,9 @@ class UserService {
       await transaction.save(merged);
     });
 
-    const reloaded = await this.userRepository.findOneOrFail(user.id, {
+    return this.userRepository.findOneOrFail(user.id, {
       relations: ['emails'],
-    });
-
-    return new Serializers.User(reloaded);
+    }) as Promise<UserWithEmails>;
   }
 }
 

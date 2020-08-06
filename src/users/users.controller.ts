@@ -6,19 +6,11 @@ import {
   Param,
   UseFilters,
   Get,
-  UseInterceptors,
   HttpStatus,
   ParseIntPipe,
 } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-
-import { Email } from '../emails/email.entity';
 import { DuplicateEmailFilter } from '../util/duplicate-email.filter';
-import { User } from './user.entity';
 import { UserService } from './user.service';
-
-import { User as UserEntity } from './user.entity';
 
 import * as Inputs from './user.inputs';
 import * as Serializers from './user.serializers';
@@ -26,13 +18,7 @@ import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 
 @Controller('users')
 export class UsersController {
-  constructor(
-    @InjectRepository(User)
-    private usersRepository: Repository<User>,
-    @InjectRepository(Email)
-    private emailsRepository: Repository<Email>,
-    private service: UserService,
-  ) {}
+  constructor(private service: UserService) {}
 
   @Get(':id')
   @ApiOperation({
@@ -43,8 +29,10 @@ export class UsersController {
     status: HttpStatus.OK,
     description: 'OK',
   })
-  show(@Param('id', ParseIntPipe) id: number): Promise<Serializers.User> {
-    return this.service.show(id);
+  async show(@Param('id', ParseIntPipe) id: number): Promise<Serializers.User> {
+    const user = await this.service.show(id);
+
+    return new Serializers.User(user);
   }
 
   @Post()
@@ -54,8 +42,9 @@ export class UsersController {
   })
   @ApiResponse({ type: Serializers.User, status: HttpStatus.CREATED })
   @ApiResponse({ status: HttpStatus.UNPROCESSABLE_ENTITY })
-  create(@Body() input: Inputs.Create): Promise<Serializers.User> {
-    return this.service.create(input);
+  async create(@Body() input: Inputs.Create): Promise<Serializers.User> {
+    const user = await this.service.create(input);
+    return new Serializers.User(user);
   }
 
   @Put(':id')
@@ -71,6 +60,7 @@ export class UsersController {
     @Param('id', ParseIntPipe) id: number,
     @Body() input: Inputs.Update,
   ): Promise<Serializers.User> {
-    return this.service.update(id, input);
+    const user = await this.service.update(id, input);
+    return new Serializers.User(user);
   }
 }
